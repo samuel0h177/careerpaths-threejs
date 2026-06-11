@@ -1,11 +1,16 @@
 <script setup>
+import { computed } from 'vue'
+import { STATION_BY_ID, TRACKS } from '../data/careers'
 import CompanyLogo from './CompanyLogo.vue'
 
-defineProps({
+const props = defineProps({
   station: { type: Object, required: true },
 })
 
-defineEmits(['close'])
+defineEmits(['close', 'select-station'])
+
+const linkedStation = computed(() => STATION_BY_ID[props.station.linkedTo])
+const linkedTrack = computed(() => TRACKS[props.station.track])
 </script>
 
 <template>
@@ -25,6 +30,21 @@ defineEmits(['close'])
       External career pathway — experience here transfers in and out of B-Line X
       at the adjacent position on the map.
     </p>
+
+    <div class="section">
+      <h3>Next stop</h3>
+      <button
+        class="next-stop"
+        @click="$emit('select-station', linkedStation.id)"
+      >
+        <span class="next-line" :style="{ background: linkedTrack.color }"></span>
+        <span class="next-info">
+          <span class="next-title">{{ linkedStation.title }}</span>
+          <span class="next-sub">L{{ linkedStation.level }} · {{ linkedTrack.name }}</span>
+        </span>
+        <span class="next-arrow">→</span>
+      </button>
+    </div>
   </aside>
 </template>
 
@@ -104,5 +124,66 @@ h2 {
   border-radius: 12px;
   border: 1px dashed rgba(139, 149, 168, 0.35);
   background: rgba(139, 149, 168, 0.06);
+  margin-bottom: 18px;
+}
+
+.section h3 {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.next-stop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: rgba(120, 160, 255, 0.05);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  transition: background 0.2s, transform 0.15s;
+}
+
+.next-stop:hover {
+  background: rgba(120, 160, 255, 0.12);
+  transform: translateX(3px);
+}
+
+.next-line {
+  width: 6px;
+  height: 30px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.next-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.next-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.next-sub {
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.next-arrow {
+  color: var(--text-dim);
 }
 </style>

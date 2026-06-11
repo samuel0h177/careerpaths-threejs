@@ -92,6 +92,7 @@ function handleClosePanel() {
         v-else-if="selected?.external"
         :station="selected"
         @close="handleClosePanel"
+        @select-station="handleSelectStation"
       />
     </Transition>
 
