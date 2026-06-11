@@ -1,0 +1,183 @@
+<script setup>
+import { TRACKS } from '../data/careers'
+
+defineProps({
+  focusedTrack: { type: String, default: null },
+})
+
+defineEmits(['focus-track', 'reset'])
+</script>
+
+<template>
+  <aside class="legend">
+    <div class="legend-head">Lines</div>
+    <button
+      v-for="track in TRACKS"
+      :key="track.id"
+      class="line-row"
+      :class="{ active: focusedTrack === track.id, faded: focusedTrack && focusedTrack !== track.id }"
+      @click="$emit('focus-track', track.id)"
+    >
+      <span class="swatch" :style="{ background: track.color, boxShadow: `0 0 10px ${track.color}` }"></span>
+      <span class="line-info">
+        <span class="line-name">{{ track.name }}</span>
+        <span class="line-desc">{{ track.description }}</span>
+      </span>
+      <span class="line-code" :style="{ color: track.color }">{{ track.short }}</span>
+    </button>
+
+    <div class="legend-divider"></div>
+
+    <div class="key-row">
+      <span class="key-mark interchange-mark"></span>
+      <span>Interchange — switch tracks</span>
+    </div>
+    <div class="key-row">
+      <span class="key-mark station-mark"></span>
+      <span>Position</span>
+    </div>
+
+    <button class="reset-btn" @click="$emit('reset')">⟲ Reset view</button>
+  </aside>
+</template>
+
+<style scoped>
+.legend {
+  position: absolute;
+  left: 24px;
+  top: 110px;
+  width: 285px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legend-head {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+
+.line-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  transition: background 0.2s, border-color 0.2s, opacity 0.25s;
+}
+
+.line-row:hover {
+  background: rgba(120, 160, 255, 0.08);
+}
+
+.line-row.active {
+  background: rgba(120, 160, 255, 0.1);
+  border-color: var(--panel-border);
+}
+
+.line-row.faded {
+  opacity: 0.4;
+}
+
+.swatch {
+  width: 22px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.line-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.line-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.line-desc {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  line-height: 1.35;
+}
+
+.line-code {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.legend-divider {
+  height: 1px;
+  background: var(--panel-border);
+  margin: 4px 0;
+}
+
+.key-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 0 12px;
+}
+
+.key-mark {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.interchange-mark {
+  border: 3px solid #fff;
+  background: #0a1020;
+}
+
+.station-mark {
+  border: 3px solid var(--accent);
+  background: #fff;
+  width: 10px;
+  height: 10px;
+}
+
+.reset-btn {
+  margin-top: 6px;
+  padding: 9px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(120, 160, 255, 0.06);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.reset-btn:hover {
+  background: rgba(120, 160, 255, 0.14);
+}
+</style>

@@ -1,0 +1,85 @@
+:root {
+  --bg: #070b14;
+  --panel: rgba(13, 19, 34, 0.72);
+  --panel-border: rgba(120, 160, 255, 0.14);
+  --text: #e8eefc;
+  --text-dim: #8da0c4;
+  --accent: #27e6ff;
+  --font-display: 'Orbitron', 'Segoe UI', sans-serif;
+  --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: rgba(39, 230, 255, 0.3);
+}
+
+/* ── 3D station labels (rendered by CSS2DRenderer) ─────────────────── */
+
+.station-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(10, 15, 28, 0.78);
+  border: 1px solid rgba(130, 165, 255, 0.16);
+  backdrop-filter: blur(6px);
+  white-space: nowrap;
+  transform: translateY(-50%);
+  transition: border-color 0.2s, background 0.2s, opacity 0.3s;
+  pointer-events: none;
+  user-select: none;
+}
+
+.station-label .label-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.station-label .label-level {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-dim);
+  font-family: var(--font-display);
+}
+
+.station-label.interchange {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.station-label.interchange .label-title {
+  color: #ffffff;
+}
+
+.station-label.hovered,
+.station-label.selected {
+  background: rgba(20, 32, 58, 0.95);
+  border-color: var(--accent);
+}
+
+.station-label.dim {
+  opacity: 0.12;
+}
+
+/* When the camera is far away, declutter by hiding non-interchange labels */
+.labels-far .station-label:not(.interchange):not(.hovered):not(.selected) {
+  opacity: 0;
+}
