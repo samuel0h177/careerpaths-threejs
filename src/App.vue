@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { MetroScene } from './three/MetroScene'
-import { COMPANY, STATION_BY_ID } from './data/careers'
+import { COMPANY, NODE_BY_ID } from './data/careers'
 import TrackLegend from './components/TrackLegend.vue'
 import DetailPanel from './components/DetailPanel.vue'
+import ExternalDetailPanel from './components/ExternalDetailPanel.vue'
 
 const container = ref(null)
 const selected = ref(null)
@@ -13,7 +14,7 @@ let scene = null
 onMounted(() => {
   scene = new MetroScene(container.value, {
     onSelect: (id) => {
-      selected.value = id ? STATION_BY_ID[id] : null
+      selected.value = id ? NODE_BY_ID[id] : null
       if (id) focusedTrack.value = null
     },
   })
@@ -34,7 +35,7 @@ function handleReset() {
 }
 
 function handleSelectStation(id) {
-  selected.value = STATION_BY_ID[id]
+  selected.value = NODE_BY_ID[id]
   focusedTrack.value = null
   scene?.selectStation(id)
 }
@@ -82,10 +83,15 @@ function handleClosePanel() {
 
     <Transition name="panel">
       <DetailPanel
-        v-if="selected"
+        v-if="selected && !selected.external"
         :station="selected"
         @close="handleClosePanel"
         @select-station="handleSelectStation"
+      />
+      <ExternalDetailPanel
+        v-else-if="selected?.external"
+        :station="selected"
+        @close="handleClosePanel"
       />
     </Transition>
 

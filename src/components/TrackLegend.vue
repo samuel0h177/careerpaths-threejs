@@ -42,6 +42,10 @@ defineEmits(['focus-track', 'reset'])
       <span class="key-mark station-mark"></span>
       <span>Position</span>
     </div>
+    <div class="key-row">
+      <span class="key-mark external-mark"></span>
+      <span>External pathway</span>
+    </div>
 
     <div class="legend-divider"></div>
 
@@ -172,15 +176,24 @@ defineEmits(['focus-track', 'reset'])
 }
 
 .interchange-mark {
-  border: 3px solid #fff;
+  border: 2px solid #fff;
   background: #0a1020;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
 }
 
 .station-mark {
-  border: 3px solid var(--accent);
-  background: #fff;
+  background: var(--accent);
   width: 10px;
   height: 10px;
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.external-mark {
+  width: 10px;
+  height: 10px;
+  background: #6b7280;
+  transform: rotate(45deg);
+  border-radius: 2px;
 }
 
 .zones-row {

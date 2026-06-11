@@ -1,8 +1,9 @@
 <script setup>
 import { computed } from 'vue'
-import { TRACKS, nextStops, segmentForLevel } from '../data/careers'
+import { TRACKS, nextStops, segmentForLevel, externalLinksFor } from '../data/careers'
 import TrackIcon from './TrackIcon.vue'
 import StaffChart from './StaffChart.vue'
+import CompanyLogo from './CompanyLogo.vue'
 
 const props = defineProps({
   station: { type: Object, required: true },
@@ -12,6 +13,7 @@ defineEmits(['close', 'select-station'])
 
 const stationTracks = computed(() => props.station.tracks.map((t) => TRACKS[t]))
 const promotions = computed(() => nextStops(props.station.id))
+const externals = computed(() => externalLinksFor(props.station.id))
 const segment = computed(() => segmentForLevel(props.station.level))
 </script>
 
@@ -65,6 +67,25 @@ const segment = computed(() => segmentForLevel(props.station.level))
       <ul>
         <li v-for="req in station.requirements" :key="req">{{ req }}</li>
       </ul>
+    </div>
+
+    <div v-if="externals.length" class="section">
+      <h3>External pathways</h3>
+      <button
+        v-for="ext in externals"
+        :key="ext.id"
+        class="external-stop"
+        @click="$emit('select-station', ext.id)"
+      >
+        <span class="ext-logo-badge">
+          <CompanyLogo :org-id="ext.orgId" :size="14" />
+        </span>
+        <span class="next-info">
+          <span class="next-title">{{ ext.title }}</span>
+          <span class="next-sub">{{ ext.org.name }}</span>
+        </span>
+        <span class="next-arrow">↗</span>
+      </button>
     </div>
 
     <div v-if="promotions.length" class="section">
@@ -207,8 +228,9 @@ h2 {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 3px solid #fff;
+  border: 2px solid #fff;
   background: #0a1020;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
   flex-shrink: 0;
 }
 
@@ -280,6 +302,40 @@ h2 {
 .next-stop:hover {
   background: rgba(120, 160, 255, 0.12);
   transform: translateX(3px);
+}
+
+.external-stop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  border: 1px dashed rgba(139, 149, 168, 0.35);
+  background: rgba(139, 149, 168, 0.06);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  transition: background 0.2s, transform 0.15s;
+}
+
+.external-stop:hover {
+  background: rgba(139, 149, 168, 0.12);
+  transform: translateX(3px);
+}
+
+.ext-logo-badge {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(139, 149, 168, 0.3);
+  background: rgba(139, 149, 168, 0.1);
+  color: #a8b4c8;
+  flex-shrink: 0;
 }
 
 .next-line {

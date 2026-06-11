@@ -10,6 +10,8 @@ import {
   STATIONS,
   LINES,
   STATION_BY_ID,
+  EXTERNAL_STATIONS,
+  NODE_BY_ID,
   SEGMENTS,
   LEVEL_X,
   LEVEL_SPACING_X,
@@ -17,6 +19,8 @@ import {
 
 const BG_COLOR = 0x070b14
 const TUBE_RADIUS = 0.3
+const EXTERNAL_TUBE_RADIUS = 0.17
+const EXTERNAL_COLOR = 0x6b7280
 const CORNER_RADIUS = 2.4
 // Tiny per-line elevation offsets so crossing tubes never clip each other.
 const LINE_Y_OFFSET = { eng: 0, sci: 0.14, med: 0.28 }
@@ -28,6 +32,28 @@ const DEFAULT_CAM_DIR = new THREE.Vector3(0.05, 1, 0.22).normalize()
 const MAP_RADIUS = 31 // bounding radius of the whole network
 
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+
+/** Vertex-color gradient along a tube: track color at the root, grey at the tip. */
+function applyTubeColorFade(geometry, tubularSegments, radialSegments, colorStart, colorEnd) {
+  const count = geometry.attributes.position.count
+  const colors = new Float32Array(count * 3)
+  const a = new THREE.Color(colorStart)
+  const b = new THREE.Color(colorEnd)
+  const vertsPerRing = radialSegments + 1
+
+  for (let ring = 0; ring <= tubularSegments; ring++) {
+    const t = ring / tubularSegments
+    const c = a.clone().lerp(b, t)
+    for (let r = 0; r < vertsPerRing; r++) {
+      const vi = ring * vertsPerRing + r
+      if (vi >= count) continue
+      colors[vi * 3] = c.r
+      colors[vi * 3 + 1] = c.g
+      colors[vi * 3 + 2] = c.b
+    }
+  }
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+}
 
 /** Build a metro-style path: straight runs with rounded corners. */
 function roundedPath(points, radius = CORNER_RADIUS) {
@@ -68,7 +94,9 @@ export class MetroScene {
     this.buildEnvironment()
     this.buildZones()
     this.buildLines()
+    this.buildExternalLinks()
     this.buildStations()
+    this.buildExternalStations()
     this.buildTrains()
     this.initPostprocessing()
     this.bindEvents()
@@ -247,56 +275,143 @@ export class MetroScene {
     }
   }
 
+  buildExternalLinks() {
+    this.externalLineMeshes = []
+
+    for (const ext of EXTERNAL_STATIONS) {
+      const linked = STATION_BY_ID[ext.linkedTo]
+      const yOff = LINE_Y_OFFSET[ext.track]
+      const { y: yBranch, z: zBranch } = ext.branch
+      const [ix, iy, iz] = linked.pos
+      const [ex, ey, ez] = ext.pos
+      const internal = new THREE.Vector3(ix, iy + yOff, iz)
+      // Vertical-diagonal dogleg: rise in Y, then step in Z (same X column)
+      const bendY = new THREE.Vector3(ix, iy + yOff + yBranch, iz)
+      const external = new THREE.Vector3(ex, ey + 0.14, ez)
+      const path = roundedPath([internal, bendY, external], 0.9)
+
+      const tubularSegments = 40
+      const radialSegments = 10
+      const geo = new THREE.TubeGeometry(path, tubularSegments, EXTERNAL_TUBE_RADIUS, radialSegments, false)
+      const trackColor = TRACKS[ext.track].color
+      applyTubeColorFade(geo, tubularSegments, radialSegments, trackColor, EXTERNAL_COLOR)
+
+      const grey = new THREE.Color(EXTERNAL_COLOR)
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        emissive: grey,
+        emissiveIntensity: 0.1,
+        roughness: 0.45,
+        metalness: 0.05,
+        transparent: true,
+        opacity: 0.7,
+        vertexColors: true,
+      })
+      const mesh = new THREE.Mesh(geo, mat)
+      mesh.userData.track = ext.track
+      this.scene.add(mesh)
+      this.externalLineMeshes.push(mesh)
+    }
+  }
+
   buildStations() {
     this.stationGroups = {}
     this.hitboxes = []
 
-    const whiteMat = () =>
-      new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        emissive: 0xffffff,
-        emissiveIntensity: 0.18,
-        roughness: 0.4,
+    const trackSphereMat = (hex, intensity = 0.6) => {
+      const color = new THREE.Color(hex)
+      return new THREE.MeshStandardMaterial({
+        color,
+        emissive: color,
+        emissiveIntensity: intensity,
+        roughness: 0.35,
+        metalness: 0.08,
         transparent: true,
       })
-    const darkMat = () =>
-      new THREE.MeshStandardMaterial({
-        color: 0x0a1020,
-        emissive: 0x0a1020,
-        emissiveIntensity: 0.2,
-        roughness: 0.6,
-        transparent: true,
-      })
+    }
 
     for (const st of STATIONS) {
       const group = new THREE.Group()
       group.position.set(st.pos[0], st.pos[1] + 0.14, st.pos[2])
+      const isCSuite = st.level >= 8
+      const trackColor = TRACKS[st.tracks[0]].color
 
       if (st.interchange) {
-        // Large white ring with dark core — classic transfer station mark
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.22, 16, 48), whiteMat())
-        ring.rotation.x = Math.PI / 2
-        const core = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.22, 40), darkMat())
-        const dot = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.3, 32), whiteMat())
-        group.add(ring, core, dot)
+        // Nested spheres — white shell, dark core, bright center (transfer station)
+        const shell = new THREE.Mesh(
+          new THREE.SphereGeometry(1.1, 28, 28),
+          new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0xffffff,
+            emissiveIntensity: 0.2,
+            roughness: 0.4,
+            transparent: true,
+            opacity: 0.85,
+          }),
+        )
+        const core = new THREE.Mesh(
+          new THREE.SphereGeometry(0.72, 24, 24),
+          new THREE.MeshStandardMaterial({
+            color: 0x0a1020,
+            emissive: 0x0a1020,
+            emissiveIntensity: 0.15,
+            roughness: 0.55,
+            transparent: true,
+          }),
+        )
+        const dot = new THREE.Mesh(
+          new THREE.SphereGeometry(0.32, 16, 16),
+          new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0xffffff,
+            emissiveIntensity: 0.35,
+            roughness: 0.35,
+            transparent: true,
+          }),
+        )
+        group.add(shell, core, dot)
+      } else if (isCSuite) {
+        const body = new THREE.Mesh(
+          new THREE.SphereGeometry(0.82, 32, 32),
+          trackSphereMat(trackColor, 0.65),
+        )
+        const highlight = new THREE.Mesh(
+          new THREE.SphereGeometry(0.38, 20, 20),
+          new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0xffffff,
+            emissiveIntensity: 0.25,
+            roughness: 0.3,
+            transparent: true,
+            opacity: 0.9,
+          }),
+        )
+        highlight.position.set(0.18, 0.22, 0.18)
+        group.add(body, highlight)
       } else {
-        const color = new THREE.Color(TRACKS[st.tracks[0]].color)
-        const ringMat = new THREE.MeshStandardMaterial({
-          color,
-          emissive: color,
-          emissiveIntensity: 0.6,
-          roughness: 0.35,
-          transparent: true,
-        })
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.78, 0.16, 16, 40), ringMat)
-        ring.rotation.x = Math.PI / 2
-        const core = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.24, 32), whiteMat())
-        group.add(ring, core)
+        const body = new THREE.Mesh(
+          new THREE.SphereGeometry(0.55, 28, 28),
+          trackSphereMat(trackColor),
+        )
+        const highlight = new THREE.Mesh(
+          new THREE.SphereGeometry(0.22, 16, 16),
+          new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0xffffff,
+            emissiveIntensity: 0.2,
+            roughness: 0.35,
+            transparent: true,
+            opacity: 0.85,
+          }),
+        )
+        highlight.position.set(0.12, 0.15, 0.12)
+        group.add(body, highlight)
       }
 
       // Invisible hitbox for raycasting
+      const hitR = st.interchange ? 1.9 : isCSuite ? 2.2 : 1.5
       const hit = new THREE.Mesh(
-        new THREE.SphereGeometry(st.interchange ? 1.9 : 1.5, 8, 8),
+        new THREE.SphereGeometry(hitR, 8, 8),
         new THREE.MeshBasicMaterial({ visible: false }),
       )
       hit.userData.stationId = st.id
@@ -305,11 +420,13 @@ export class MetroScene {
 
       // Floating label
       const el = document.createElement('div')
-      el.className = 'station-label' + (st.interchange ? ' interchange' : '')
+      el.className = 'station-label'
+        + (st.interchange ? ' interchange' : '')
+        + (isCSuite ? ' c-suite' : '')
       el.innerHTML = `<span class="label-title">${st.title}</span><span class="label-level">L${st.level}</span>`
       const label = new CSS2DObject(el)
       // Alternate label heights between adjacent levels to reduce overlap
-      label.position.set(0, st.level % 2 === 1 ? 1.4 : 2.4, 0)
+      label.position.set(0, isCSuite ? 2.6 : st.level % 2 === 1 ? 1.4 : 2.4, 0)
       group.add(label)
 
       group.userData.station = st
@@ -324,7 +441,64 @@ export class MetroScene {
     this.selectionRing = new THREE.Mesh(selGeo, selMat)
     this.selectionRing.rotation.x = Math.PI / 2
     this.selectionRing.visible = false
+    this.selectionRingBaseScale = 1
     this.scene.add(this.selectionRing)
+  }
+
+  buildExternalStations() {
+    const greyMat = () =>
+      new THREE.MeshStandardMaterial({
+        color: EXTERNAL_COLOR,
+        emissive: EXTERNAL_COLOR,
+        emissiveIntensity: 0.15,
+        roughness: 0.55,
+        transparent: true,
+      })
+    const coreMat = () =>
+      new THREE.MeshStandardMaterial({
+        color: 0x3d4450,
+        emissive: 0x2a3040,
+        emissiveIntensity: 0.1,
+        roughness: 0.6,
+        transparent: true,
+      })
+
+    const logoSvg = {
+      spacex: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 18 L12 4 L20 18 M7 13 L17 13" stroke="#a8b4c8" stroke-width="2.2" stroke-linecap="round"/></svg>`,
+      nasa: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="11" r="7" stroke="#a8b4c8" stroke-width="1.4"/><path d="M6 13 Q12 7 18 13" stroke="#c45c5c" stroke-width="1.6" fill="none"/></svg>`,
+    }
+
+    for (const ext of EXTERNAL_STATIONS) {
+      const group = new THREE.Group()
+      group.position.set(ext.pos[0], ext.pos[1] + 0.14, ext.pos[2])
+
+      // Diamond marker — visually distinct from internal round stations
+      const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), greyMat())
+      diamond.rotation.y = Math.PI / 4
+      const core = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.18, 0.5), coreMat())
+      core.rotation.y = Math.PI / 4
+      group.add(diamond, core)
+
+      const hit = new THREE.Mesh(
+        new THREE.SphereGeometry(1.2, 8, 8),
+        new THREE.MeshBasicMaterial({ visible: false }),
+      )
+      hit.userData.stationId = ext.id
+      group.add(hit)
+      this.hitboxes.push(hit)
+
+      const el = document.createElement('div')
+      el.className = 'external-label'
+      el.innerHTML = `<span class="ext-logo">${logoSvg[ext.orgId]}</span><span class="ext-title">${ext.title}</span>`
+      const label = new CSS2DObject(el)
+      label.position.set(0, 1.3, 0)
+      group.add(label)
+
+      group.userData.station = ext
+      group.userData.labelEl = el
+      this.scene.add(group)
+      this.stationGroups[ext.id] = group
+    }
   }
 
   buildTrains() {
@@ -421,11 +595,13 @@ export class MetroScene {
       g.userData.labelEl.classList.toggle('selected', sid === id)
     }
     if (id) {
-      const st = STATION_BY_ID[id]
+      const st = NODE_BY_ID[id]
       this.selectionRing.visible = true
       this.selectionRing.position.set(st.pos[0], st.pos[1] + 0.14, st.pos[2])
-      this.applyFocus(null) // selecting clears track focus; lines on this station glow
-      this.highlightTracks(new Set(st.tracks))
+      this.selectionRingBaseScale = st.external ? 0.75 : st.level >= 8 ? 1.35 : 1
+      this.selectionRing.material.color.setHex(st.external ? EXTERNAL_COLOR : 0xffffff)
+      this.applyFocus(null)
+      this.highlightTracks(new Set(st.external ? [st.track] : st.tracks))
       this.flyTo(st)
     } else {
       this.selectionRing.visible = false
@@ -455,12 +631,19 @@ export class MetroScene {
       mesh.material.opacity = on ? 1 : 0.07
       mesh.material.emissiveIntensity = on ? 0.5 : 0.05
     }
+    for (const mesh of this.externalLineMeshes) {
+      const on = activeTracks.has(mesh.userData.track)
+      mesh.material.opacity = on ? 0.55 : 0.05
+      mesh.material.emissiveIntensity = on ? 0.12 : 0.02
+    }
     for (const train of this.trains) {
       train.mesh.material.opacity = activeTracks.has(train.trackId) ? 1 : 0.05
     }
     for (const g of Object.values(this.stationGroups)) {
       const st = g.userData.station
-      const on = st.tracks.some((t) => activeTracks.has(t))
+      const on = st.external
+        ? activeTracks.has(st.track)
+        : st.tracks.some((t) => activeTracks.has(t))
       g.traverse((o) => {
         if (o.isMesh && o.material && o.material.visible !== false && !o.userData.stationId) {
           o.material.opacity = on ? 1 : 0.1
@@ -536,7 +719,7 @@ export class MetroScene {
 
     // Selection ring pulse
     if (this.selectionRing.visible) {
-      const s = 1 + 0.12 * Math.sin(t * 4)
+      const s = this.selectionRingBaseScale * (1 + 0.12 * Math.sin(t * 4))
       this.selectionRing.scale.setScalar(s)
       this.selectionRing.material.opacity = 0.65 + 0.3 * Math.sin(t * 4)
     }

@@ -248,6 +248,59 @@ export const LINES = {
 
 export const STATION_BY_ID = Object.fromEntries(STATIONS.map((s) => [s.id, s]))
 
+// ── External company pathways (grey branch lines off the main network) ──
+
+export const EXTERNAL_ORGS = {
+  spacex: {
+    id: 'spacex',
+    name: 'SpaceX',
+    color: '#8b95a8',
+  },
+  nasa: {
+    id: 'nasa',
+    name: 'NASA',
+    color: '#8b95a8',
+  },
+}
+
+// Vertical-diagonal branch offsets (y, z) — step upward then sideways in Z,
+// staying in the same seniority column (X) so branches never cross other lines.
+const externalDefs = [
+  // Engineering ↔ SpaceX — branch up and toward the ENG outer edge (z −)
+  { id: 'ext_sx1', orgId: 'spacex', title: 'Launch Vehicle Engineer', linkedTo: 'e2', branch: { y: 2.2, z: -2.5 } },
+  { id: 'ext_sx2', orgId: 'spacex', title: 'Starship Systems Engineer', linkedTo: 'e3', branch: { y: 2.8, z: -3 } },
+  { id: 'ext_sx3', orgId: 'spacex', title: 'Senior Propulsion Architect', linkedTo: 'e4', branch: { y: 3.4, z: -3.5 } },
+  // Sciences ↔ NASA — branch up and away from Medical (z −, toward ENG side)
+  { id: 'ext_nasa1', orgId: 'nasa', title: 'Planetary Science Fellow', linkedTo: 's2', branch: { y: 2.2, z: -2.5 } },
+  { id: 'ext_nasa2', orgId: 'nasa', title: 'Mission Science Lead', linkedTo: 's3', branch: { y: 2.8, z: -3 } },
+  { id: 'ext_nasa3', orgId: 'nasa', title: 'Deep Space Program Director', linkedTo: 's4', branch: { y: 3.4, z: -3.5 } },
+]
+
+export const EXTERNAL_STATIONS = externalDefs.map((ext) => {
+  const linked = STATION_BY_ID[ext.linkedTo]
+  const { y, z } = ext.branch
+  return {
+    id: ext.id,
+    orgId: ext.orgId,
+    org: EXTERNAL_ORGS[ext.orgId],
+    title: ext.title,
+    linkedTo: ext.linkedTo,
+    external: true,
+    track: linked.tracks[0],
+    level: linked.level,
+    branch: ext.branch,
+    pos: [linked.pos[0], linked.pos[1] + y, linked.pos[2] + z],
+  }
+})
+
+export const EXTERNAL_BY_ID = Object.fromEntries(EXTERNAL_STATIONS.map((s) => [s.id, s]))
+export const NODE_BY_ID = { ...STATION_BY_ID, ...EXTERNAL_BY_ID }
+
+/** External pathways reachable from an internal station. */
+export function externalLinksFor(stationId) {
+  return EXTERNAL_STATIONS.filter((e) => e.linkedTo === stationId)
+}
+
 /** Next positions reachable from a station (promotions along each line). */
 export function nextStops(stationId) {
   const out = []
