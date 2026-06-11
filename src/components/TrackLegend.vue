@@ -1,5 +1,6 @@
 <script setup>
 import { TRACKS } from '../data/careers'
+import TrackIcon from './TrackIcon.vue'
 
 defineProps({
   focusedTrack: { type: String, default: null },
@@ -18,7 +19,12 @@ defineEmits(['focus-track', 'reset'])
       :class="{ active: focusedTrack === track.id, faded: focusedTrack && focusedTrack !== track.id }"
       @click="$emit('focus-track', track.id)"
     >
-      <span class="swatch" :style="{ background: track.color, boxShadow: `0 0 10px ${track.color}` }"></span>
+      <span
+        class="icon-badge"
+        :style="{ color: track.color, borderColor: track.color + '55', background: track.color + '14' }"
+      >
+        <TrackIcon :track-id="track.id" :size="16" />
+      </span>
       <span class="line-info">
         <span class="line-name">{{ track.name }}</span>
         <span class="line-desc">{{ track.description }}</span>
@@ -95,11 +101,15 @@ defineEmits(['focus-track', 'reset'])
   opacity: 0.4;
 }
 
-.swatch {
-  width: 22px;
-  height: 8px;
-  border-radius: 999px;
+.icon-badge {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid;
   flex-shrink: 0;
+  filter: drop-shadow(0 0 6px currentColor);
 }
 
 .line-info {

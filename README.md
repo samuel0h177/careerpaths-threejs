@@ -1,4 +1,4 @@
-# Helion Dynamics — Career Transit Map
+# B-Line X Dynamics — Career Transit Map
 
 An interactive 3D career paths explorer built with Vue 3 and Three.js. Career
 tracks at a fictional asteroid-mining / deep-space-exploration company are

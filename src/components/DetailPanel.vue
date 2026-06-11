@@ -1,6 +1,8 @@
 <script setup>
 import { computed } from 'vue'
 import { TRACKS, nextStops } from '../data/careers'
+import TrackIcon from './TrackIcon.vue'
+import StaffChart from './StaffChart.vue'
 
 const props = defineProps({
   station: { type: Object, required: true },
@@ -23,6 +25,7 @@ const promotions = computed(() => nextStops(props.station.id))
         class="chip"
         :style="{ borderColor: t.color, color: t.color }"
       >
+        <TrackIcon :track-id="t.id" :size="11" />
         {{ t.short }} · {{ t.name }}
       </span>
     </div>
@@ -46,6 +49,11 @@ const promotions = computed(() => nextStops(props.station.id))
     </div>
 
     <p class="desc">{{ station.description }}</p>
+
+    <div class="section">
+      <h3>Staffing outlook</h3>
+      <StaffChart :trend="station.staffTrend" />
+    </div>
 
     <div class="section">
       <h3>Requirements</h3>
@@ -123,6 +131,9 @@ const promotions = computed(() => nextStops(props.station.id))
 }
 
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-display);
   font-size: 9px;
   font-weight: 700;

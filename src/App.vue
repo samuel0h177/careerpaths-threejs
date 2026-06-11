@@ -95,6 +95,15 @@ function handleClosePanel() {
 .canvas-host {
   position: absolute;
   inset: 0;
+  /* Contain CSS2D label z-indexes so UI panels always paint above them */
+  z-index: 0;
+}
+
+.topbar,
+.legend,
+.panel,
+.hints {
+  z-index: 1;
 }
 
 .canvas-host :deep(canvas) {
