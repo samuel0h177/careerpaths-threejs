@@ -5,7 +5,15 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
-import { TRACKS, STATIONS, LINES, STATION_BY_ID } from '../data/careers'
+import {
+  TRACKS,
+  STATIONS,
+  LINES,
+  STATION_BY_ID,
+  SEGMENTS,
+  LEVEL_X,
+  LEVEL_SPACING_X,
+} from '../data/careers'
 
 const BG_COLOR = 0x070b14
 const TUBE_RADIUS = 0.3
@@ -14,7 +22,9 @@ const CORNER_RADIUS = 2.4
 const LINE_Y_OFFSET = { eng: 0, sci: 0.14, med: 0.28 }
 
 const DEFAULT_TARGET = new THREE.Vector3(0, 10, 0)
-const DEFAULT_CAM_DIR = new THREE.Vector3(0.38, 0.52, 1).normalize()
+// Near-vertical: initial/reset view looks down on the map like a printed
+// metro plan (slight tilt keeps OrbitControls stable and hints at depth).
+const DEFAULT_CAM_DIR = new THREE.Vector3(0.05, 1, 0.22).normalize()
 const MAP_RADIUS = 31 // bounding radius of the whole network
 
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
@@ -56,6 +66,7 @@ export class MetroScene {
     this.initRenderer()
     this.initScene()
     this.buildEnvironment()
+    this.buildZones()
     this.buildLines()
     this.buildStations()
     this.buildTrains()
@@ -101,6 +112,9 @@ export class MetroScene {
     this.controls.target.copy(DEFAULT_TARGET)
     this.controls.enableDamping = true
     this.controls.dampingFactor = 0.06
+    this.controls.rotateSpeed = 0.45
+    this.controls.panSpeed = 0.55
+    this.controls.zoomSpeed = 0.7
     this.controls.minDistance = 8
     this.controls.maxDistance = 130
     this.controls.maxPolarAngle = Math.PI * 0.52
@@ -157,6 +171,47 @@ export class MetroScene {
     glow.rotation.x = -Math.PI / 2
     glow.position.y = -2.98
     this.scene.add(glow)
+  }
+
+  // ── Career segment zones (metro "fare zone" bands on the floor) ──────
+
+  buildZones() {
+    const ZONE_DEPTH = 32
+    const ZONE_Y = -2.92
+
+    for (const seg of SEGMENTS) {
+      const x0 = LEVEL_X(seg.levels[0]) - LEVEL_SPACING_X / 2
+      const x1 = LEVEL_X(seg.levels[1]) + LEVEL_SPACING_X / 2
+      const center = (x0 + x1) / 2
+      const color = new THREE.Color(seg.color)
+
+      const band = new THREE.Mesh(
+        new THREE.PlaneGeometry(x1 - x0, ZONE_DEPTH),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.07, depthWrite: false }),
+      )
+      band.rotation.x = -Math.PI / 2
+      band.position.set(center, ZONE_Y, 0)
+      this.scene.add(band)
+
+      // Crisp boundary strips so bands read in the top-down view
+      for (const xe of [x0, x1]) {
+        const strip = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.14, ZONE_DEPTH),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3, depthWrite: false }),
+        )
+        strip.rotation.x = -Math.PI / 2
+        strip.position.set(xe, ZONE_Y + 0.01, 0)
+        this.scene.add(strip)
+      }
+
+      const el = document.createElement('div')
+      el.className = 'zone-label'
+      el.style.color = seg.color
+      el.textContent = `${seg.name} · L${seg.levels[0]}–L${seg.levels[1]}`
+      const label = new CSS2DObject(el)
+      label.position.set(center, ZONE_Y, ZONE_DEPTH / 2 + 2)
+      this.scene.add(label)
+    }
   }
 
   // ── Metro lines ───────────────────────────────────────────────────────

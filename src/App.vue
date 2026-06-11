@@ -51,7 +51,21 @@ function handleClosePanel() {
 
     <header class="topbar">
       <div class="brand">
-        <div class="brand-mark">◆</div>
+        <div class="brand-mark">
+        <svg width="33" height="22" viewBox="0 0 35 24" aria-label="Pac-Man eating an asteroid as big as itself">
+          <!-- Pac-Man, mouth open toward the asteroid -->
+          <path d="M7.3 12 L13.5 8.7 A6.6 6.6 0 1 0 13.5 15.3 Z" fill="currentColor" />
+          <circle cx="8.2" cy="8.2" r="1" fill="#0d1322" />
+          <!-- Asteroid, every bit as big as Pac-Man -->
+          <path
+            d="M16.5 10.5 L18.5 7.5 L22 6 L25.5 6.8 L28 9 L28.8 12.5 L27.5 15.5 L24 17.2 L20.5 16.8 L17.5 14.5 Z"
+            fill="#9aa7c4"
+          />
+          <circle cx="21.5" cy="10.5" r="1.2" fill="#5d6b8c" />
+          <circle cx="25" cy="13.6" r="0.9" fill="#5d6b8c" />
+          <circle cx="19.5" cy="14" r="0.7" fill="#5d6b8c" />
+        </svg>
+      </div>
         <div>
           <h1>{{ COMPANY.name }}</h1>
           <p>{{ COMPANY.tagline }}</p>
@@ -137,13 +151,15 @@ function handleClosePanel() {
   height: 42px;
   display: grid;
   place-items: center;
-  font-size: 18px;
   color: var(--accent);
   border: 1px solid var(--panel-border);
   border-radius: 12px;
   background: var(--panel);
   backdrop-filter: blur(8px);
-  text-shadow: 0 0 12px var(--accent);
+}
+
+.brand-mark svg {
+  filter: drop-shadow(0 0 7px rgba(39, 230, 255, 0.55));
 }
 
 .brand h1 {

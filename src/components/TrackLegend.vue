@@ -1,5 +1,5 @@
 <script setup>
-import { TRACKS } from '../data/careers'
+import { TRACKS, SEGMENTS } from '../data/careers'
 import TrackIcon from './TrackIcon.vue'
 
 defineProps({
@@ -41,6 +41,17 @@ defineEmits(['focus-track', 'reset'])
     <div class="key-row">
       <span class="key-mark station-mark"></span>
       <span>Position</span>
+    </div>
+
+    <div class="legend-divider"></div>
+
+    <div class="legend-head">Career zones</div>
+    <div class="zones-row">
+      <span v-for="s in SEGMENTS" :key="s.id" class="zone-key">
+        <span class="zone-dot" :style="{ background: s.color, boxShadow: `0 0 8px ${s.color}88` }"></span>
+        <span class="zone-name">{{ s.short }}</span>
+        <span class="zone-range">L{{ s.levels[0] }}–{{ s.levels[1] }}</span>
+      </span>
     </div>
 
     <button class="reset-btn" @click="$emit('reset')">⟲ Reset view</button>
@@ -170,6 +181,36 @@ defineEmits(['focus-track', 'reset'])
   background: #fff;
   width: 10px;
   height: 10px;
+}
+
+.zones-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 12px 4px;
+}
+
+.zone-key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.zone-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.zone-name {
+  font-weight: 600;
+}
+
+.zone-range {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  font-family: var(--font-display);
 }
 
 .reset-btn {

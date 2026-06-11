@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { TRACKS, nextStops } from '../data/careers'
+import { TRACKS, nextStops, segmentForLevel } from '../data/careers'
 import TrackIcon from './TrackIcon.vue'
 import StaffChart from './StaffChart.vue'
 
@@ -12,6 +12,7 @@ defineEmits(['close', 'select-station'])
 
 const stationTracks = computed(() => props.station.tracks.map((t) => TRACKS[t]))
 const promotions = computed(() => nextStops(props.station.id))
+const segment = computed(() => segmentForLevel(props.station.level))
 </script>
 
 <template>
@@ -37,7 +38,11 @@ const promotions = computed(() => nextStops(props.station.id))
         <span class="meta-label">Grade</span>
         <span class="meta-value">L{{ station.level }} — {{ station.levelName }}</span>
       </div>
-      <div class="meta-item">
+      <div class="meta-item" :style="{ borderColor: segment.color + '55' }">
+        <span class="meta-label">Career stage</span>
+        <span class="meta-value" :style="{ color: segment.color }">{{ segment.name }}</span>
+      </div>
+      <div class="meta-item wide">
         <span class="meta-label">Compensation</span>
         <span class="meta-value">{{ station.salary }}</span>
       </div>
@@ -156,6 +161,10 @@ h2 {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-bottom: 14px;
+}
+
+.meta-item.wide {
+  grid-column: 1 / -1;
 }
 
 .meta-item {

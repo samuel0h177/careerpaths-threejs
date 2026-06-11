@@ -48,12 +48,25 @@ export const TRACKS = {
   },
 }
 
+// Career segments ("fare zones" on the map): contiguous level ranges.
+export const SEGMENTS = [
+  { id: 'early', name: 'Early Career', short: 'Early', levels: [1, 3], color: '#5b8dff' },
+  { id: 'mid', name: 'Mid Career', short: 'Mid', levels: [4, 6], color: '#a78bfa' },
+  { id: 'senior', name: 'Senior Career', short: 'Senior', levels: [7, 8], color: '#e8b84b' },
+]
+
+export const segmentForLevel = (level) =>
+  SEGMENTS.find((s) => level >= s.levels[0] && level <= s.levels[1])
+
 // Map level -> world coordinates. X advances with seniority, Y is the
 // "climb" (elevation), Z separates the three line corridors.
-const LEVEL_SPACING_X = 6.5
+export const LEVEL_SPACING_X = 6.5
 const LEVEL_SPACING_Y = 3.1
 const X = (l) => (l - 1) * LEVEL_SPACING_X - 22.75
 const Y = (l) => (l - 1) * LEVEL_SPACING_Y
+
+/** World x coordinate for a career level (used for zone bands in the scene). */
+export const LEVEL_X = X
 
 const station = (id, title, level, tracks, z, salary, description, requirements, staffTrend) => ({
   id,
