@@ -146,6 +146,12 @@ export class MetroScene {
     this.controls.minDistance = 8
     this.controls.maxDistance = 130
     this.controls.maxPolarAngle = Math.PI * 0.52
+    // Right-drag pans; left-drag still orbits
+    this.controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.PAN,
+    }
 
     this.scene.add(new THREE.AmbientLight(0x8899bb, 0.55))
     const key = new THREE.DirectionalLight(0xffffff, 1.4)
@@ -679,6 +685,24 @@ export class MetroScene {
     this.selectStation(null)
     this.applyFocus(null)
     this.animateCamera(this.defaultCameraPos(), DEFAULT_TARGET.clone())
+  }
+
+  /** Pan the view in a screen-space direction (left/right/up/down). */
+  panDirection(dir) {
+    this.cameraAnim = null
+    const dist = this.camera.position.distanceTo(this.controls.target) * 0.09
+    const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrix, 0)
+    const up = new THREE.Vector3().setFromMatrixColumn(this.camera.matrix, 1)
+    const delta = new THREE.Vector3()
+    switch (dir) {
+      case 'left': delta.copy(right).multiplyScalar(-dist); break
+      case 'right': delta.copy(right).multiplyScalar(dist); break
+      case 'up': delta.copy(up).multiplyScalar(dist); break
+      case 'down': delta.copy(up).multiplyScalar(-dist); break
+      default: return
+    }
+    this.controls.target.add(delta)
+    this.camera.position.add(delta)
   }
 
   animateCamera(toPos, toTarget, duration = 1.1) {

@@ -5,6 +5,7 @@ import { COMPANY, NODE_BY_ID } from './data/careers'
 import TrackLegend from './components/TrackLegend.vue'
 import DetailPanel from './components/DetailPanel.vue'
 import ExternalDetailPanel from './components/ExternalDetailPanel.vue'
+import PanControls from './components/PanControls.vue'
 
 const container = ref(null)
 const selected = ref(null)
@@ -43,6 +44,10 @@ function handleSelectStation(id) {
 function handleClosePanel() {
   selected.value = null
   scene?.selectStation(null)
+}
+
+function handlePan(dir) {
+  scene?.panDirection(dir)
 }
 </script>
 
@@ -96,12 +101,16 @@ function handleClosePanel() {
       />
     </Transition>
 
+    <PanControls @pan="handlePan" />
+
     <footer class="hints">
       <span><b>Drag</b> orbit</span>
       <span class="sep">·</span>
       <span><b>Scroll</b> zoom</span>
       <span class="sep">·</span>
-      <span><b>Click a station</b> for position details</span>
+      <span><b>Pan pad</b> or right-drag</span>
+      <span class="sep">·</span>
+      <span><b>Click a station</b> for details</span>
     </footer>
   </div>
 </template>
@@ -123,6 +132,7 @@ function handleClosePanel() {
 .topbar,
 .legend,
 .panel,
+.pan-controls,
 .hints {
   z-index: 1;
 }
